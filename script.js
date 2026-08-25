@@ -1,13 +1,10 @@
 // ============================================
-// SCRIPT - CARREGA MÍDIAS DA RAIZ DO PROJETO
+// SCRIPT - CARREGA MÍDIAS E COPIA LINK COMPLETO
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
 
-// 🔽 URL BASE (RAIZ DO PROJETO)
-const BASE_URL = '/';
-
-// 🔽 LISTA DE ARQUIVOS (ATUALIZE COM OS SEUS)
+// 🔽 LISTA DE ARQUIVOS (ATUALIZE QUANDO ADICIONAR/REMOVER MÍDIAS)
 const arquivos = [
     // 🖼️ IMAGENS
     { nome: 'images/38fa8ecfa730fb0a30873133541e9c38.jpg', tipo: 'image' },
@@ -32,7 +29,8 @@ function carregarMidias() {
     let cardsHTML = '';
     
     arquivos.forEach(arquivo => {
-        const fileUrl = BASE_URL + arquivo.nome;
+        // 🔽 CRIA O LINK COMPLETO (COM O DOMÍNIO)
+        const fileUrl = window.location.origin + '/' + arquivo.nome;
         const fileName = arquivo.nome.split('/').pop();
         const mediaType = arquivo.tipo;
         
@@ -72,6 +70,7 @@ function copiarLink(url, button) {
             button.classList.remove('copied');
         }, 2000);
     }).catch(() => {
+        // Fallback para navegadores antigos
         const input = document.createElement('input');
         input.value = url;
         document.body.appendChild(input);
@@ -81,6 +80,7 @@ function copiarLink(url, button) {
         button.textContent = '✅ Copiado!';
         setTimeout(() => {
             button.textContent = '📋 Copiar Link';
+            button.classList.remove('copied');
         }, 2000);
     });
 }
