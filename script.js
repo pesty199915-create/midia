@@ -15,7 +15,7 @@ const CONFIG = {
     branch: 'main',
     pastas: ['images', 'videos'],
     // 🔽 TOKEN FIXO AQUI!
-    token: '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'
+    token: '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'
 };
 
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
