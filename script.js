@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - GERENCIADOR DE MÍDIAS COM TOKEN FIXO
+// SCRIPT - GERENCIADOR DE MÍDIAS COM LOCALSTORAGE
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -8,19 +8,43 @@ const fileInput = document.getElementById('fileInput');
 const uploadBtn = document.getElementById('uploadBtn');
 const statusMsg = document.getElementById('statusMsg');
 
-// 🔽 CONFIGURAÇÃO
+// Elementos da chave de acesso
+const tokenInput = document.getElementById('githubTokenInput');
+const saveTokenBtn = document.getElementById('saveTokenBtn');
+
+// 🔽 CONFIGURAÇÃO (Lê a chave diretamente do navegador)
 const CONFIG = {
     owner: 'pesty199915-create',
     repo: 'midia',
     branch: 'main',
     pastas: ['images', 'videos'],
-    // ⚠️ ATENÇÃO: COLE O SEU NOVO TOKEN AQUI DENTRO DAS ASPAS
-    token: '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'
+    get token() {
+        return localStorage.getItem('gh_token') || '';
+    }
 };
 
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
 
-// 🔽 FUNÇÃO DE HEADERS PADRONIZADA
+// 🔽 CONFIGURAÇÃO E GERENCIAMENTO DO TOKEN LOCAL
+function inicializarTokenLocal() {
+    if (tokenInput && saveTokenBtn) {
+        tokenInput.value = CONFIG.token;
+
+        saveTokenBtn.addEventListener('click', () => {
+            const novoToken = tokenInput.value.trim();
+            if (novoToken) {
+                localStorage.setItem('gh_token', novoToken);
+                alert('✅ Token salvo no seu navegador!');
+                carregarMidias();
+            } else {
+                localStorage.removeItem('gh_token');
+                alert('⚠️ Token removido do navegador.');
+            }
+        });
+    }
+}
+
+// 🔽 HEADERS DE AUTENTICAÇÃO
 function getHeaders() {
     return {
         'Authorization': `Bearer ${CONFIG.token}`,
@@ -163,8 +187,8 @@ function abrirLink(url) {
 
 // 🔽 FUNÇÃO PARA DELETAR ARQUIVO
 async function deletarArquivo(caminho, sha, button) {
-    if (!CONFIG.token || CONFIG.token === 'SEU_NOVO_TOKEN_AQUI') {
-        alert('❌ Configure o token do GitHub no arquivo script.js.');
+    if (!CONFIG.token) {
+        alert('❌ Insira o seu Token do GitHub no topo da página e clique em "Salvar Chave".');
         return;
     }
 
@@ -189,7 +213,7 @@ async function deletarArquivo(caminho, sha, button) {
 
         if (!resposta.ok) {
             const erro = await resposta.json();
-            throw new Error(erro.message || 'Erro ao excluir arquivo no GitHub.');
+            throw new Error(erro.message || 'Erro ao excluir arquivo.');
         }
 
         alert(`✅ Arquivo "${caminho}" excluído com sucesso!`);
@@ -203,7 +227,7 @@ async function deletarArquivo(caminho, sha, button) {
     }
 }
 
-// 🔽 VERIFICA SE O ARQUIVO EXISTE PARA ATUALIZAR O SHA
+// 🔽 BUSCA SHA CASO O ARQUIVO JÁ EXISTA
 async function obterShaExistente(caminho) {
     try {
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}?ref=${CONFIG.branch}`;
@@ -220,8 +244,8 @@ async function obterShaExistente(caminho) {
 
 // 🔽 FUNÇÃO PARA FAZER UPLOAD
 async function fazerUpload(arquivo, pasta) {
-    if (!CONFIG.token || CONFIG.token === 'SEU_NOVO_TOKEN_AQUI') {
-        alert('❌ Configure o token do GitHub no arquivo script.js.');
+    if (!CONFIG.token) {
+        alert('❌ Insira o seu Token do GitHub no topo da página e clique em "Salvar Chave".');
         return;
     }
 
@@ -255,7 +279,7 @@ async function fazerUpload(arquivo, pasta) {
 
             if (!resposta.ok) {
                 const erro = await resposta.json();
-                throw new Error(erro.message || 'Erro ao realizar upload no GitHub.');
+                throw new Error(erro.message || 'Erro ao realizar upload.');
             }
 
             statusMsg.textContent = `✅ "${arquivo.name}" enviado com sucesso!`;
@@ -275,7 +299,7 @@ async function fazerUpload(arquivo, pasta) {
     reader.readAsDataURL(arquivo);
 }
 
-// 🔽 CONFIGURAR UPLOAD
+// 🔽 CONFIGURAR EVENTOS DE UPLOAD
 function configurarUpload() {
     uploadBtn.addEventListener('click', function() {
         fileInput.click();
@@ -318,8 +342,9 @@ function configurarUpload() {
     });
 }
 
-// 🔽 CARREGAR AUTOMATICAMENTE
+// 🔽 INICIALIZAÇÃO
 window.addEventListener('DOMContentLoaded', function() {
+    inicializarTokenLocal();
     carregarMidias();
     configurarUpload();
 });
