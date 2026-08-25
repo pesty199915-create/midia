@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - GERENCIADOR DE MÍDIAS COM LOCALSTORAGE
+// SCRIPT - GERENCIADOR DE MÍDIAS COM SEM CACHE
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -53,11 +53,14 @@ function getHeaders() {
     };
 }
 
-// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS
+// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (Com fura-cache)
 async function buscarArquivos(pasta) {
     try {
-        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}?ref=${CONFIG.branch}`;
-        const resposta = await fetch(url);
+        // Adicionando timestamp para forçar atualização em tempo real
+        const timestamp = Date.now();
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}?ref=${CONFIG.branch}&t=${timestamp}`;
+        
+        const resposta = await fetch(url, { cache: 'no-store' });
         
         if (!resposta.ok) {
             if (resposta.status === 404) {
@@ -79,7 +82,8 @@ async function buscarArquivos(pasta) {
                 nome: arquivo.name,
                 caminho: arquivo.path,
                 sha: arquivo.sha,
-                url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${arquivo.path}`
+                // Parameter de tempo para evitar que a imagem carregue do cache antigo
+                url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${arquivo.path}?t=${timestamp}`
             }));
     } catch (erro) {
         console.error(`Erro na pasta "${pasta}":`, erro);
@@ -116,6 +120,8 @@ async function carregarMidias() {
         
         todosArquivos.forEach(arquivo => {
             const fileUrl = arquivo.url;
+            // Para exibição do link sem a supressão de cache
+            const rawCleanUrl = fileUrl.split('?')[0];
             const tipo = getTipoMidia(arquivo.nome);
             
             let previewHTML = '';
@@ -137,10 +143,10 @@ async function carregarMidias() {
                     <div class="preview">${previewHTML}</div>
                     <div class="info">
                         <div class="filename" title="${arquivo.nome}">${arquivo.nome}</div>
-                        <div class="link" title="${fileUrl}">${fileUrl}</div>
+                        <div class="link" title="${rawCleanUrl}">${rawCleanUrl}</div>
                         <div class="button-group">
-                            <button class="btn-copy" onclick="copiarLink('${fileUrl}', this)">📋 Copiar Link</button>
-                            <button class="btn-open" onclick="abrirLink('${fileUrl}')">🔗 Abrir</button>
+                            <button class="btn-copy" onclick="copiarLink('${rawCleanUrl}', this)">📋 Copiar Link</button>
+                            <button class="btn-open" onclick="abrirLink('${rawCleanUrl}')">🔗 Abrir</button>
                             <button class="btn-delete" onclick="deletarArquivo('${arquivo.caminho}', '${arquivo.sha}', this)">🗑️</button>
                         </div>
                     </div>
@@ -227,11 +233,12 @@ async function deletarArquivo(caminho, sha, button) {
     }
 }
 
-// 🔽 BUSCA SHA CASO O ARQUIVO JÁ EXISTA
+// 🔽 BUSCA SHA CASO O ARQUIVO JÁ EXISTA (Com fura-cache)
 async function obterShaExistente(caminho) {
     try {
-        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}?ref=${CONFIG.branch}`;
-        const resposta = await fetch(url);
+        const timestamp = Date.now();
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}?ref=${CONFIG.branch}&t=${timestamp}`;
+        const resposta = await fetch(url, { cache: 'no-store' });
         if (resposta.ok) {
             const dados = await resposta.json();
             return dados.sha;
@@ -288,7 +295,7 @@ async function fazerUpload(arquivo, pasta) {
             setTimeout(() => {
                 statusMsg.textContent = '';
                 carregarMidias();
-            }, 1500);
+            }, 1000);
 
         } catch (erro) {
             console.error(erro);
