@@ -1,30 +1,23 @@
 // ============================================
-// SCRIPT - LISTA MÍDIAS USANDO URL RAW (SEM API)
+// SCRIPT - LISTA MÍDIAS COM CAMINHO CORRETO
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
 
-// 🔽 CONFIGURAÇÃO DO SEU REPOSITÓRIO
+// 🔽 CONFIGURAÇÃO DO SEU REPOSITÓRIO (VERIFIQUE!)
 const REPO_OWNER = 'pesty199915-create';
 const REPO_NAME = 'midia-host';
-const BRANCH = 'main';
+const BRANCH = 'main';  // Ou 'master' - verifique no GitHub!
 
-// 🔽 PASTAS ONDE ESTÃO AS MÍDIAS
-const PASTAS = ['images', 'videos'];
-
-// 🔽 EXTENSÕES DE ARQUIVO QUE SERÃO EXIBIDAS
-const EXTENSOES_MEDIA = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
-
-// 🔽 LISTA MANUAL DOS ARQUIVOS (VOCÊ PRECISA MANTER ATUALIZADO)
-// ⚠️ QUANDO ADICIONAR UM NOVO ARQUIVO, ADICIONE AQUI!
+// 🔽 LISTA DOS ARQUIVOS (ATUALIZE QUANDO ADICIONAR NOVOS)
 const ARQUIVOS_CONHECIDOS = [
-    // 🖼️ IMAGENS (pasta "images")
+    // 🖼️ IMAGENS
     'images/38fa8ecfa730fb0a30873133541e9c38.jpg',
     'images/b8030a44728ea7ed854f2601de7bb110.jpg',
     'images/Clique em Acessar Site.png',
     'images/naye.jpg',
     
-    // 🎬 VÍDEOS (pasta "videos")
+    // 🎬 VÍDEOS
     'videos/08111(14).mp4',
     'videos/08111(15).mp4',
     'videos/08111(16).mp4',
@@ -43,10 +36,11 @@ function getMediaType(filename) {
 // 🔽 FUNÇÃO PRINCIPAL - CARREGA AS MÍDIAS
 function carregarMidias() {
     if (ARQUIVOS_CONHECIDOS.length === 0) {
-        mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma mídia cadastrada. Adicione arquivos na lista ARQUIVOS_CONHECIDOS.</p>`;
+        mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma mídia cadastrada.</p>`;
         return;
     }
 
+    // 🔽 CONSTRÓI A URL BASE CORRETAMENTE
     const baseUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}`;
     let cardsHTML = '';
     
