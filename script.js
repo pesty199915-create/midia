@@ -15,7 +15,7 @@ const CONFIG = {
     branch: 'main',
     pastas: ['images', 'videos'],
     // 🔽 TOKEN FIXO AQUI!
-    token: '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'
+    token: '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'
 };
 
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
