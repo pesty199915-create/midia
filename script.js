@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - GERENCIADOR DE MÍDIAS COM TOKEN SEGURO
+// SCRIPT - GERENCIADOR DE MÍDIAS COM TOKEN FIXO
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -7,39 +7,18 @@ const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
 const uploadBtn = document.getElementById('uploadBtn');
 const statusMsg = document.getElementById('statusMsg');
-const tokenInput = document.getElementById('tokenInput');
-const tokenSaveBtn = document.getElementById('tokenSaveBtn');
-const tokenStatus = document.getElementById('tokenStatus');
 
 // 🔽 CONFIGURAÇÃO
 const CONFIG = {
     owner: 'pesty199915-create',
     repo: 'midia',
     branch: 'main',
-    pastas: ['images', 'videos']
+    pastas: ['images', 'videos'],
+    // 🔽 TOKEN FIXO AQUI!
+    token: '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'
 };
 
-// 🔽 VARIÁVEIS
-let token = localStorage.getItem('github_token') || '';
-
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
-
-// 🔽 FUNÇÃO PARA SALVAR TOKEN
-function salvarToken() {
-    const novoToken = tokenInput.value.trim();
-    if (!novoToken) {
-        alert('Digite um token válido.');
-        return;
-    }
-    token = novoToken;
-    localStorage.setItem('github_token', token);
-    tokenStatus.textContent = '✅ Token salvo com sucesso!';
-    tokenStatus.style.color = '#10b981';
-    tokenInput.value = '';
-    setTimeout(() => {
-        tokenStatus.textContent = '';
-    }, 3000);
-}
 
 // 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS
 async function buscarArquivos(pasta) {
@@ -173,8 +152,8 @@ function abrirLink(url) {
 
 // 🔽 FUNÇÃO PARA DELETAR ARQUIVO
 async function deletarArquivo(caminho, sha, button) {
-    if (!token) {
-        alert('❌ Token não configurado. Adicione seu token no campo acima.');
+    if (!CONFIG.token) {
+        alert('❌ Token não configurado.');
         return;
     }
 
@@ -190,7 +169,7 @@ async function deletarArquivo(caminho, sha, button) {
         const resposta = await fetch(url, {
             method: 'DELETE',
             headers: {
-                'Authorization': `token ${token}`,
+                'Authorization': `token ${CONFIG.token}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -218,8 +197,8 @@ async function deletarArquivo(caminho, sha, button) {
 
 // 🔽 FUNÇÃO PARA FAZER UPLOAD
 async function fazerUpload(arquivo, pasta) {
-    if (!token) {
-        alert('❌ Token não configurado. Adicione seu token no campo acima.');
+    if (!CONFIG.token) {
+        alert('❌ Token não configurado.');
         return;
     }
 
@@ -233,7 +212,7 @@ async function fazerUpload(arquivo, pasta) {
             const resposta = await fetch(url, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `token ${token}`,
+                    'Authorization': `token ${CONFIG.token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -265,8 +244,6 @@ async function fazerUpload(arquivo, pasta) {
 
 // 🔽 CONFIGURAR UPLOAD
 function configurarUpload() {
-    const pastaSelecionada = document.getElementById('pastaUpload');
-
     uploadBtn.addEventListener('click', function() {
         fileInput.click();
     });
@@ -308,11 +285,6 @@ function configurarUpload() {
 
 // 🔽 CARREGAR AUTOMATICAMENTE
 window.addEventListener('DOMContentLoaded', function() {
-    // Verifica se já tem token salvo
-    if (token) {
-        tokenStatus.textContent = '✅ Token configurado!';
-        tokenStatus.style.color = '#10b981';
-    }
     carregarMidias();
     configurarUpload();
 });
