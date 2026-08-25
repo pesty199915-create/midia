@@ -1,83 +1,120 @@
 // ============================================
-// SCRIPT - LISTA MÍDIAS COM CAMINHO CORRETO
+// SCRIPT - LISTA MÍDIAS AUTOMATICAMENTE
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
 
-// 🔽 CONFIGURAÇÃO DO SEU REPOSITÓRIO (VERIFIQUE!)
-const REPO_OWNER = 'pesty199915-create';
-const REPO_NAME = 'midia-host';
-const BRANCH = 'main';  // Ou 'master' - verifique no GitHub!
+// 🔽 CONFIGURAÇÃO (VOCÊ SÓ MUDA AQUI!)
+const CONFIG = {
+    owner: 'pesty199915-create',
+    repo: 'midia',  // ← NOME DO SEU REPOSITÓRIO
+    branch: 'main',
+    pastas: ['images', 'videos']  // ← PASTAS QUE VÃO SER LIDAS
+};
 
-// 🔽 LISTA DOS ARQUIVOS (ATUALIZE QUANDO ADICIONAR NOVOS)
-const ARQUIVOS_CONHECIDOS = [
-    // 🖼️ IMAGENS
-    'images/38fa8ecfa730fb0a30873133541e9c38.jpg',
-    'images/b8030a44728ea7ed854f2601de7bb110.jpg',
-    'images/Clique em Acessar Site.png',
-    'images/naye.jpg',
-    
-    // 🎬 VÍDEOS
-    'videos/08111(14).mp4',
-    'videos/08111(15).mp4',
-    'videos/08111(16).mp4',
-    'videos/08111(17).mp4',
-];
+// 🔽 EXTENSÕES DE ARQUIVO QUE SERÃO EXIBIDAS
+const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
+
+// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS DE UMA PASTA
+async function buscarArquivos(pasta) {
+    try {
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}`;
+        const resposta = await fetch(url);
+        
+        if (!resposta.ok) {
+            if (resposta.status === 404) {
+                console.warn(`⚠️ Pasta "${pasta}" não encontrada.`);
+                return [];
+            }
+            throw new Error(`Erro ${resposta.status}: ${resposta.statusText}`);
+        }
+        
+        const arquivos = await resposta.json();
+        return arquivos
+            .filter(arquivo => 
+                arquivo.type === 'file' && 
+                EXTENSOES.some(ext => arquivo.name.toLowerCase().endsWith(ext))
+            )
+            .map(arquivo => ({
+                nome: arquivo.name,
+                caminho: arquivo.path,
+                url: arquivo.download_url
+            }));
+    } catch (erro) {
+        console.error(`Erro na pasta "${pasta}":`, erro);
+        return [];
+    }
+}
 
 // 🔽 FUNÇÃO PARA IDENTIFICAR O TIPO DE MÍDIA
-function getMediaType(filename) {
+function getTipoMidia(nome) {
     const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
     const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
-    if (videoExts.some(ext => filename.toLowerCase().endsWith(ext))) return 'video';
-    if (imageExts.some(ext => filename.toLowerCase().endsWith(ext))) return 'image';
+    if (videoExts.some(ext => nome.toLowerCase().endsWith(ext))) return 'video';
+    if (imageExts.some(ext => nome.toLowerCase().endsWith(ext))) return 'image';
     return 'unknown';
 }
 
-// 🔽 FUNÇÃO PRINCIPAL - CARREGA AS MÍDIAS
-function carregarMidias() {
-    if (ARQUIVOS_CONHECIDOS.length === 0) {
-        mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma mídia cadastrada.</p>`;
-        return;
-    }
+// 🔽 FUNÇÃO PRINCIPAL
+async function carregarMidias() {
+    mediaGrid.innerHTML = `<p class="empty-msg">⏳ Carregando mídias...</p>`;
 
-    // 🔽 CONSTRÓI A URL BASE CORRETAMENTE
-    const baseUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}`;
-    let cardsHTML = '';
-    
-    ARQUIVOS_CONHECIDOS.forEach(caminho => {
-        const fileUrl = `${baseUrl}/${caminho}`;
-        const fileName = caminho.split('/').pop();
-        const mediaType = getMediaType(fileName);
+    try {
+        // 🔽 BUSCA EM TODAS AS PASTAS AO MESMO TEMPO
+        const promessas = CONFIG.pastas.map(pasta => buscarArquivos(pasta));
+        const resultados = await Promise.all(promessas);
         
-        let previewHTML = '';
-        if (mediaType === 'video') {
-            previewHTML = `
-                <video controls muted preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#000;">
-                    <source src="${fileUrl}" type="video/mp4" />
-                    Seu navegador não suporta vídeo.
-                </video>
-            `;
-        } else if (mediaType === 'image') {
-            previewHTML = `<img src="${fileUrl}" alt="${fileName}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'file-icon\\'>🖼️</span>'" />`;
-        } else {
-            previewHTML = `<span class="file-icon">📄</span>`;
+        // 🔽 JUNTA TODOS OS ARQUIVOS
+        const todosArquivos = resultados.flat();
+        
+        if (todosArquivos.length === 0) {
+            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado.</p>`;
+            return;
         }
 
-        cardsHTML += `
-            <div class="media-card">
-                <div class="preview">
-                    ${previewHTML}
-                </div>
-                <div class="info">
-                    <div class="filename" title="${fileName}">${fileName}</div>
-                    <div class="link" title="${fileUrl}">${fileUrl}</div>
-                    <button class="btn-copy" onclick="copiarLink('${fileUrl}', this)">📋 Copiar Link</button>
-                </div>
-            </div>
-        `;
-    });
+        // 🔽 ORDENA POR NOME
+        todosArquivos.sort((a, b) => a.nome.localeCompare(b.nome));
 
-    mediaGrid.innerHTML = cardsHTML;
+        // 🔽 CONSTRÓI OS CARDS
+        let cardsHTML = '';
+        const baseUrl = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}`;
+        
+        todosArquivos.forEach(arquivo => {
+            const fileUrl = `${baseUrl}/${arquivo.caminho}`;
+            const tipo = getTipoMidia(arquivo.nome);
+            
+            let previewHTML = '';
+            if (tipo === 'video') {
+                previewHTML = `
+                    <video controls muted preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#000;">
+                        <source src="${fileUrl}" type="video/mp4" />
+                        Seu navegador não suporta vídeo.
+                    </video>
+                `;
+            } else if (tipo === 'image') {
+                previewHTML = `<img src="${fileUrl}" alt="${arquivo.nome}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'file-icon\\'>🖼️</span>'" />`;
+            } else {
+                previewHTML = `<span class="file-icon">📄</span>`;
+            }
+
+            cardsHTML += `
+                <div class="media-card">
+                    <div class="preview">${previewHTML}</div>
+                    <div class="info">
+                        <div class="filename" title="${arquivo.nome}">${arquivo.nome}</div>
+                        <div class="link" title="${fileUrl}">${fileUrl}</div>
+                        <button class="btn-copy" onclick="copiarLink('${fileUrl}', this)">📋 Copiar Link</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        mediaGrid.innerHTML = cardsHTML;
+
+    } catch (erro) {
+        console.error(erro);
+        mediaGrid.innerHTML = `<p class="empty-msg">❌ Erro: ${erro.message}</p>`;
+    }
 }
 
 // 🔽 FUNÇÃO PARA COPIAR LINK
@@ -104,5 +141,5 @@ function copiarLink(url, button) {
     });
 }
 
-// 🔽 CARREGAR AUTOMATICAMENTE AO ABRIR A PÁGINA
+// 🔽 CARREGA AUTOMATICAMENTE
 window.addEventListener('DOMContentLoaded', carregarMidias);
