@@ -15,7 +15,7 @@ const CONFIG = {
     branch: 'main',
     pastas: ['images', 'videos'],
     // ⚠️ COLOQUE SEU TOKEN AQUI (Certifique-se de que ele tem a permissão "Contents: Read and write" ou "repo")
-    token: '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' 
+    token: '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' 
 };
 
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
