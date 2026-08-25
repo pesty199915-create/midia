@@ -14,26 +14,24 @@ const CONFIG = {
     repo: 'midia',
     branch: 'main',
     pastas: ['images', 'videos'],
-    // ⚠️ SUBSTITUA PELO SEU NOVO TOKEN AQUI
+    // ⚠️ COLOQUE SEU TOKEN AQUI (Certifique-se de que ele tem a permissão "Contents: Read and write" ou "repo")
     token: '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' 
 };
 
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
 
-// 🔽 HEADERS DE AUTENTICAÇÃO
-function getHeaders() {
-    return {
-        'Authorization': `Bearer ${CONFIG.token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-    };
-}
-
-// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS
+// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (Sem autenticação obrigatória para evitar bloqueios)
 async function buscarArquivos(pasta) {
     try {
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}?ref=${CONFIG.branch}`;
-        const resposta = await fetch(url, { headers: getHeaders() });
+        
+        // Faz a busca pública (se houver token configurado, envia no header para evitar limite de taxa)
+        const headers = {};
+        if (CONFIG.token && CONFIG.token !== 'SEU_NOVO_TOKEN_AQUI') {
+            headers['Authorization'] = `token ${CONFIG.token}`;
+        }
+
+        const resposta = await fetch(url, { headers });
         
         if (!resposta.ok) {
             if (resposta.status === 404) {
@@ -44,6 +42,8 @@ async function buscarArquivos(pasta) {
         }
         
         const arquivos = await resposta.json();
+        if (!Array.isArray(arquivos)) return [];
+
         return arquivos
             .filter(arquivo => 
                 arquivo.type === 'file' && 
@@ -53,7 +53,7 @@ async function buscarArquivos(pasta) {
                 nome: arquivo.name,
                 caminho: arquivo.path,
                 sha: arquivo.sha,
-                // Utiliza a URL bruta para que imagens e vídeos carreguem no navegador
+                // Link direto do GitHub Pages / raw para visualização
                 url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${arquivo.path}`
             }));
     } catch (erro) {
@@ -81,7 +81,7 @@ async function carregarMidias() {
         const todosArquivos = resultados.flat();
         
         if (todosArquivos.length === 0) {
-            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado.</p>`;
+            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado nas pastas configuradas.</p>`;
             return;
         }
 
@@ -162,8 +162,8 @@ function abrirLink(url) {
 
 // 🔽 FUNÇÃO PARA DELETAR ARQUIVO
 async function deletarArquivo(caminho, sha, button) {
-    if (!CONFIG.token) {
-        alert('❌ Token não configurado.');
+    if (!CONFIG.token || CONFIG.token === 'SEU_NOVO_TOKEN_AQUI') {
+        alert('❌ Token do GitHub não configurado no script.js');
         return;
     }
 
@@ -178,9 +178,13 @@ async function deletarArquivo(caminho, sha, button) {
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}`;
         const resposta = await fetch(url, {
             method: 'DELETE',
-            headers: getHeaders(),
+            headers: {
+                'Authorization': `token ${CONFIG.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
             body: JSON.stringify({
-                message: `Delete ${caminho} via web`,
+                message: `Delete ${caminho} via painel`,
                 sha: sha,
                 branch: CONFIG.branch
             })
@@ -192,7 +196,7 @@ async function deletarArquivo(caminho, sha, button) {
         }
 
         alert(`✅ Arquivo "${caminho}" excluído com sucesso!`);
-        carregarMidias(); // Recarrega sem precisar dar f5 na página inteira
+        carregarMidias();
 
     } catch (erro) {
         console.error(erro);
@@ -202,11 +206,11 @@ async function deletarArquivo(caminho, sha, button) {
     }
 }
 
-// 🔽 FUNÇÃO AUXILIAR PARA CHECAR SE O ARQUIVO JÁ EXISTE (PARA PEGAR O SHA)
+// 🔽 OBTÊM O SHA SE O ARQUIVO JÁ EXISTIR (PARA SOBRESCREVER)
 async function obterShaExistente(caminho) {
     try {
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}?ref=${CONFIG.branch}`;
-        const resposta = await fetch(url, { headers: getHeaders() });
+        const resposta = await fetch(url);
         if (resposta.ok) {
             const dados = await resposta.json();
             return dados.sha;
@@ -219,8 +223,8 @@ async function obterShaExistente(caminho) {
 
 // 🔽 FUNÇÃO PARA FAZER UPLOAD
 async function fazerUpload(arquivo, pasta) {
-    if (!CONFIG.token) {
-        alert('❌ Token não configurado.');
+    if (!CONFIG.token || CONFIG.token === 'SEU_NOVO_TOKEN_AQUI') {
+        alert('❌ Token do GitHub não configurado no script.js');
         return;
     }
 
@@ -233,23 +237,26 @@ async function fazerUpload(arquivo, pasta) {
         const caminho = `${pasta}/${arquivo.name}`;
 
         try {
-            // Verifica se o arquivo já existe para sobrescrevê-lo se necessário
             const shaExistente = await obterShaExistente(caminho);
 
             const bodyData = {
-                message: `Upload ${arquivo.name} via web`,
+                message: `Upload ${arquivo.name} via painel`,
                 content: base64,
                 branch: CONFIG.branch
             };
 
             if (shaExistente) {
-                bodyData.sha = shaExistente; // Necessário para atualizar arquivo existente
+                bodyData.sha = shaExistente;
             }
 
             const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}`;
             const resposta = await fetch(url, {
                 method: 'PUT',
-                headers: getHeaders(),
+                headers: {
+                    'Authorization': `token ${CONFIG.token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
+                },
                 body: JSON.stringify(bodyData)
             });
 
@@ -285,7 +292,7 @@ function configurarUpload() {
         if (this.files.length > 0) {
             const arquivo = this.files[0];
             const pastaEl = document.getElementById('pastaUpload');
-            const pasta = pastaEl ? pastaEl.value : CONFIG.pastas[0];
+            const pasta = pastaEl ? pastaEl.value : 'images';
             fazerUpload(arquivo, pasta);
         }
         this.value = '';
@@ -312,13 +319,13 @@ function configurarUpload() {
         if (e.dataTransfer.files.length > 0) {
             const arquivo = e.dataTransfer.files[0];
             const pastaEl = document.getElementById('pastaUpload');
-            const pasta = pastaEl ? pastaEl.value : CONFIG.pastas[0];
+            const pasta = pastaEl ? pastaEl.value : 'images';
             fazerUpload(arquivo, pasta);
         }
     });
 }
 
-// 🔽 CARREGAR AUTOMATICAMENTE
+// 🔽 INICIALIZAÇÃO
 window.addEventListener('DOMContentLoaded', function() {
     carregarMidias();
     configurarUpload();
