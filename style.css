@@ -1,42 +1,59 @@
-/* 🔽 BOTÕES LADO A LADO */
-.button-group {
+/* 🔽 SEÇÃO DO TOKEN */
+.token-section {
+    background: #1a1a1e;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    border: 1px solid #2d2d33;
+}
+
+.token-section h2 {
+    color: #e5e7eb;
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+.token-input-group {
     display: flex;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
-.button-group .btn-copy,
-.button-group .btn-open {
+.token-input-group input {
     flex: 1;
-    padding: 6px 12px;
+    min-width: 200px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #2d2d33;
+    background: #202027;
+    color: #f1f5f9;
+    font-size: 14px;
+}
+
+.token-input-group input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+}
+
+.token-input-group button {
+    background: #7c3aed;
+    color: white;
     border: none;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s;
-    text-align: center;
+    transition: background 0.3s;
 }
 
-.button-group .btn-copy {
-    background: #e5e7eb;
-    color: #374151;
+.token-input-group button:hover {
+    background: #8b5cf6;
 }
 
-.button-group .btn-copy:hover {
-    background: #d1d5db;
+.token-status {
+    margin-top: 6px;
+    font-size: 13px;
+    min-height: 20px;
 }
 
-.button-group .btn-copy.copied {
-    background: #10b981;
-    color: white;
-}
-
-.button-group .btn-open {
-    background: #3b82f6;
-    color: white;
-}
-
-.button-group .btn-open:hover {
-    background: #2563eb;
-}
+/* ... resto dos estilos ... */
