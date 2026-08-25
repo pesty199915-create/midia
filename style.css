@@ -1,129 +1,42 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-body {
-    background: #f5f7fa;
-    min-height: 100vh;
-    padding: 20px;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-    padding: 30px;
-}
-
-header {
-    margin-bottom: 24px;
-    border-bottom: 1px solid #eaeef2;
-    padding-bottom: 16px;
-}
-
-header h1 { font-size: 28px; color: #1a1a2e; }
-header p { color: #6b7280; font-size: 14px; margin-top: 4px; }
-
-.media-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 20px;
-}
-
-.empty-msg {
-    grid-column: 1 / -1;
-    text-align: center;
-    color: #9ca3af;
-    font-size: 16px;
-    padding: 40px 0;
-}
-
-.media-card {
-    background: #f9fafb;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.media-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-}
-
-.media-card .preview {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    background: #e5e7eb;
+/* 🔽 BOTÕES LADO A LADO */
+.button-group {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.media-card .preview img,
-.media-card .preview video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.media-card .preview .file-icon {
-    font-size: 48px;
-    opacity: 0.5;
-}
-
-.media-card .info {
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
     gap: 8px;
+    margin-top: 4px;
 }
 
-.media-card .info .filename {
-    font-size: 13px;
-    font-weight: 500;
-    color: #1f2937;
-    word-break: break-all;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.media-card .info .link {
-    font-size: 11px;
-    color: #6b7280;
-    word-break: break-all;
-    background: #f3f4f6;
-    padding: 6px 8px;
-    border-radius: 4px;
-    max-height: 40px;
-    overflow: hidden;
-}
-
-.media-card .info .btn-copy {
+.button-group .btn-copy,
+.button-group .btn-open {
+    flex: 1;
     padding: 6px 12px;
-    background: #e5e7eb;
     border: none;
     border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.15s;
-    color: #374151;
-    align-self: flex-start;
+    text-align: center;
 }
 
-.media-card .info .btn-copy:hover {
+.button-group .btn-copy {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.button-group .btn-copy:hover {
     background: #d1d5db;
 }
 
-.media-card .info .btn-copy.copied {
+.button-group .btn-copy.copied {
     background: #10b981;
     color: white;
+}
+
+.button-group .btn-open {
+    background: #3b82f6;
+    color: white;
+}
+
+.button-group .btn-open:hover {
+    background: #2563eb;
 }
