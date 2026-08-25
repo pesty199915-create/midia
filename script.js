@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - LISTA MÍDIAS COM LINKS DO SITE (NÃO DO GITHUB)
+// SCRIPT - LISTA MÍDIAS COM LINKS DO SITE
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -72,8 +72,8 @@ async function carregarMidias() {
         let cardsHTML = '';
         
         todosArquivos.forEach(arquivo => {
-            // 🔽 **AQUI ESTÁ A MUDANÇA!** Usa o link do SITE em vez do GitHub
             const fileUrl = `/${arquivo.caminho}`;
+            const linkCompleto = window.location.origin + fileUrl;
             const tipo = getTipoMidia(arquivo.nome);
             
             let previewHTML = '';
@@ -90,16 +90,16 @@ async function carregarMidias() {
                 previewHTML = `<span class="file-icon">📄</span>`;
             }
 
-            // 🔽 O BOTÃO COPIA O LINK COMPLETO DO SITE
-            const linkCompleto = window.location.origin + fileUrl;
-
             cardsHTML += `
                 <div class="media-card">
                     <div class="preview">${previewHTML}</div>
                     <div class="info">
                         <div class="filename" title="${arquivo.nome}">${arquivo.nome}</div>
                         <div class="link" title="${linkCompleto}">${linkCompleto}</div>
-                        <button class="btn-copy" onclick="copiarLink('${linkCompleto}', this)">📋 Copiar Link</button>
+                        <div class="button-group">
+                            <button class="btn-copy" onclick="copiarLink('${linkCompleto}', this)">📋 Copiar Link</button>
+                            <button class="btn-open" onclick="abrirLink('${linkCompleto}')">🔗 Abrir</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -135,6 +135,11 @@ function copiarLink(url, button) {
             button.classList.remove('copied');
         }, 2000);
     });
+}
+
+// 🔽 FUNÇÃO PARA ABRIR EM NOVA ABA
+function abrirLink(url) {
+    window.open(url, '_blank');
 }
 
 // 🔽 CARREGA AUTOMATICAMENTE
