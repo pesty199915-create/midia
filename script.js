@@ -6,17 +6,17 @@ const mediaGrid = document.getElementById('mediaGrid');
 
 // 🔽 LISTA DE ARQUIVOS (ATUALIZE QUANDO ADICIONAR/REMOVER MÍDIAS)
 const arquivos = [
-    // 🖼️ IMAGENS
+    // 🖼️ IMAGENS (estão dentro da pasta "images")
     { nome: 'images/38fa8ecfa730fb0a30873133541e9c38.jpg', tipo: 'image' },
     { nome: 'images/b8030a44728ea7ed854f2601de7bb110.jpg', tipo: 'image' },
     { nome: 'images/Clique em Acessar Site.png', tipo: 'image' },
     { nome: 'images/naye.jpg', tipo: 'image' },
     
-    // 🎬 VÍDEOS
-    { nome: 'videos/08111(14).mp4', tipo: 'video' },
-    { nome: 'videos/08111(15).mp4', tipo: 'video' },
-    { nome: 'videos/08111(16).mp4', tipo: 'video' },
-    { nome: 'videos/08111(17).mp4', tipo: 'video' },
+    // 🎬 VÍDEOS (estão na RAIZ do projeto, NÃO dentro de "videos")
+    { nome: '08111(14).mp4', tipo: 'video' },
+    { nome: '08111(15).mp4', tipo: 'video' },
+    { nome: '08111(16).mp4', tipo: 'video' },
+    { nome: '08111(17).mp4', tipo: 'video' },
 ];
 
 // 🔽 Função para carregar e exibir as mídias
@@ -36,7 +36,12 @@ function carregarMidias() {
         
         let previewHTML = '';
         if (mediaType === 'video') {
-            previewHTML = `<video controls muted preload="metadata"><source src="${fileUrl}" type="video/mp4" /></video>`;
+            previewHTML = `
+                <video controls muted preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#000;">
+                    <source src="${fileUrl}" type="video/mp4" />
+                    Seu navegador não suporta vídeo.
+                </video>
+            `;
         } else if (mediaType === 'image') {
             previewHTML = `<img src="${fileUrl}" alt="${fileName}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'file-icon\\'>🖼️</span>'" />`;
         } else {
@@ -70,7 +75,6 @@ function copiarLink(url, button) {
             button.classList.remove('copied');
         }, 2000);
     }).catch(() => {
-        // Fallback para navegadores antigos
         const input = document.createElement('input');
         input.value = url;
         document.body.appendChild(input);
