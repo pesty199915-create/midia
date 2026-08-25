@@ -14,24 +14,17 @@ const CONFIG = {
     repo: 'midia',
     branch: 'main',
     pastas: ['images', 'videos'],
-    // ⚠️ COLOQUE SEU TOKEN AQUI (Certifique-se de que ele tem a permissão "Contents: Read and write" ou "repo")
-    token: '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' 
+    // 🔽 TOKEN FIXO AQUI!
+    token: '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'
 };
 
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
 
-// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (Sem autenticação obrigatória para evitar bloqueios)
+// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS
 async function buscarArquivos(pasta) {
     try {
-        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}?ref=${CONFIG.branch}`;
-        
-        // Faz a busca pública (se houver token configurado, envia no header para evitar limite de taxa)
-        const headers = {};
-        if (CONFIG.token && CONFIG.token !== 'SEU_NOVO_TOKEN_AQUI') {
-            headers['Authorization'] = `token ${CONFIG.token}`;
-        }
-
-        const resposta = await fetch(url, { headers });
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}`;
+        const resposta = await fetch(url);
         
         if (!resposta.ok) {
             if (resposta.status === 404) {
@@ -42,8 +35,6 @@ async function buscarArquivos(pasta) {
         }
         
         const arquivos = await resposta.json();
-        if (!Array.isArray(arquivos)) return [];
-
         return arquivos
             .filter(arquivo => 
                 arquivo.type === 'file' && 
@@ -53,8 +44,7 @@ async function buscarArquivos(pasta) {
                 nome: arquivo.name,
                 caminho: arquivo.path,
                 sha: arquivo.sha,
-                // Link direto do GitHub Pages / raw para visualização
-                url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${arquivo.path}`
+                url: arquivo.download_url
             }));
     } catch (erro) {
         console.error(`Erro na pasta "${pasta}":`, erro);
@@ -81,7 +71,7 @@ async function carregarMidias() {
         const todosArquivos = resultados.flat();
         
         if (todosArquivos.length === 0) {
-            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado nas pastas configuradas.</p>`;
+            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado.</p>`;
             return;
         }
 
@@ -90,14 +80,14 @@ async function carregarMidias() {
         let cardsHTML = '';
         
         todosArquivos.forEach(arquivo => {
-            const fileUrl = arquivo.url;
+            const fileUrl = window.location.origin + '/' + arquivo.caminho;
             const tipo = getTipoMidia(arquivo.nome);
             
             let previewHTML = '';
             if (tipo === 'video') {
                 previewHTML = `
                     <video controls muted preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#000;">
-                        <source src="${fileUrl}" />
+                        <source src="${fileUrl}" type="video/mp4" />
                         Seu navegador não suporta vídeo.
                     </video>
                 `;
@@ -162,8 +152,8 @@ function abrirLink(url) {
 
 // 🔽 FUNÇÃO PARA DELETAR ARQUIVO
 async function deletarArquivo(caminho, sha, button) {
-    if (!CONFIG.token || CONFIG.token === 'SEU_NOVO_TOKEN_AQUI') {
-        alert('❌ Token do GitHub não configurado no script.js');
+    if (!CONFIG.token) {
+        alert('❌ Token não configurado.');
         return;
     }
 
@@ -181,10 +171,9 @@ async function deletarArquivo(caminho, sha, button) {
             headers: {
                 'Authorization': `token ${CONFIG.token}`,
                 'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({
-                message: `Delete ${caminho} via painel`,
+                message: `Delete ${caminho}`,
                 sha: sha,
                 branch: CONFIG.branch
             })
@@ -196,7 +185,7 @@ async function deletarArquivo(caminho, sha, button) {
         }
 
         alert(`✅ Arquivo "${caminho}" excluído com sucesso!`);
-        carregarMidias();
+        location.reload();
 
     } catch (erro) {
         console.error(erro);
@@ -206,30 +195,12 @@ async function deletarArquivo(caminho, sha, button) {
     }
 }
 
-// 🔽 OBTÊM O SHA SE O ARQUIVO JÁ EXISTIR (PARA SOBRESCREVER)
-async function obterShaExistente(caminho) {
-    try {
-        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}?ref=${CONFIG.branch}`;
-        const resposta = await fetch(url);
-        if (resposta.ok) {
-            const dados = await resposta.json();
-            return dados.sha;
-        }
-    } catch {
-        return null;
-    }
-    return null;
-}
-
 // 🔽 FUNÇÃO PARA FAZER UPLOAD
 async function fazerUpload(arquivo, pasta) {
-    if (!CONFIG.token || CONFIG.token === 'SEU_NOVO_TOKEN_AQUI') {
-        alert('❌ Token do GitHub não configurado no script.js');
+    if (!CONFIG.token) {
+        alert('❌ Token não configurado.');
         return;
     }
-
-    statusMsg.textContent = `⏳ Enviando "${arquivo.name}"...`;
-    statusMsg.style.color = '#3b82f6';
 
     const reader = new FileReader();
     reader.onload = async function(event) {
@@ -237,27 +208,18 @@ async function fazerUpload(arquivo, pasta) {
         const caminho = `${pasta}/${arquivo.name}`;
 
         try {
-            const shaExistente = await obterShaExistente(caminho);
-
-            const bodyData = {
-                message: `Upload ${arquivo.name} via painel`,
-                content: base64,
-                branch: CONFIG.branch
-            };
-
-            if (shaExistente) {
-                bodyData.sha = shaExistente;
-            }
-
             const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}`;
             const resposta = await fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `token ${CONFIG.token}`,
                     'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
                 },
-                body: JSON.stringify(bodyData)
+                body: JSON.stringify({
+                    message: `Upload ${arquivo.name}`,
+                    content: base64,
+                    branch: CONFIG.branch
+                })
             });
 
             if (!resposta.ok) {
@@ -267,10 +229,8 @@ async function fazerUpload(arquivo, pasta) {
 
             statusMsg.textContent = `✅ "${arquivo.name}" enviado com sucesso!`;
             statusMsg.style.color = '#10b981';
-            
             setTimeout(() => {
-                statusMsg.textContent = '';
-                carregarMidias();
+                location.reload();
             }, 1500);
 
         } catch (erro) {
@@ -291,8 +251,7 @@ function configurarUpload() {
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             const arquivo = this.files[0];
-            const pastaEl = document.getElementById('pastaUpload');
-            const pasta = pastaEl ? pastaEl.value : 'images';
+            const pasta = document.getElementById('pastaUpload').value;
             fazerUpload(arquivo, pasta);
         }
         this.value = '';
@@ -318,14 +277,13 @@ function configurarUpload() {
         
         if (e.dataTransfer.files.length > 0) {
             const arquivo = e.dataTransfer.files[0];
-            const pastaEl = document.getElementById('pastaUpload');
-            const pasta = pastaEl ? pastaEl.value : 'images';
+            const pasta = document.getElementById('pastaUpload').value;
             fazerUpload(arquivo, pasta);
         }
     });
 }
 
-// 🔽 INICIALIZAÇÃO
+// 🔽 CARREGAR AUTOMATICAMENTE
 window.addEventListener('DOMContentLoaded', function() {
     carregarMidias();
     configurarUpload();
