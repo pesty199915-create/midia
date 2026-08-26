@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - GERENCIADOR DE MÍDIAS (AUTENTICADO + ANTI-CACHE)
+// SCRIPT - GERENCIADOR DE MÍDIAS (VERSÃO VERCELL)
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -22,6 +22,9 @@ const CONFIG = {
         return localStorage.getItem('gh_token') || '';
     }
 };
+
+// 🔽 URL BASE DO SITE NA VERCELL
+const SITE_URL = window.location.origin; // Ex: https://midia-theta.vercel.app
 
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
 
@@ -56,13 +59,12 @@ function getHeaders() {
     return headers;
 }
 
-// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (COM TOKEN E ANTI-CACHE)
+// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS
 async function buscarArquivos(pasta) {
     try {
         const timestamp = Date.now();
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}?ref=${CONFIG.branch}&t=${timestamp}`;
         
-        // Passa os headers de autenticação para não estourar limite e não dar erro 401/403
         const resposta = await fetch(url, { 
             headers: getHeaders(),
             cache: 'no-store' 
@@ -88,7 +90,8 @@ async function buscarArquivos(pasta) {
                 nome: arquivo.name,
                 caminho: arquivo.path,
                 sha: arquivo.sha,
-                url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${arquivo.path}?t=${timestamp}`
+                // 🔽 USA O LINK DA VERCELL EM VEZ DO GITHUB
+                url: `${SITE_URL}/${arquivo.path}?t=${timestamp}`
             }));
     } catch (erro) {
         console.error(`Erro na pasta "${pasta}":`, erro);
@@ -124,8 +127,9 @@ async function carregarMidias() {
         let cardsHTML = '';
         
         todosArquivos.forEach(arquivo => {
+            // 🔽 LIMPA O TIMESTAMP PARA EXIBIÇÃO
             const fileUrl = arquivo.url;
-            const rawCleanUrl = fileUrl.split('?')[0];
+            const cleanUrl = fileUrl.split('?')[0];
             const tipo = getTipoMidia(arquivo.nome);
             
             let previewHTML = '';
@@ -147,10 +151,10 @@ async function carregarMidias() {
                     <div class="preview">${previewHTML}</div>
                     <div class="info">
                         <div class="filename" title="${arquivo.nome}">${arquivo.nome}</div>
-                        <div class="link" title="${rawCleanUrl}">${rawCleanUrl}</div>
+                        <div class="link" title="${cleanUrl}">${cleanUrl}</div>
                         <div class="button-group">
-                            <button class="btn-copy" onclick="copiarLink('${rawCleanUrl}', this)">📋 Copiar Link</button>
-                            <button class="btn-open" onclick="abrirLink('${rawCleanUrl}')">🔗 Abrir</button>
+                            <button class="btn-copy" onclick="copiarLink('${cleanUrl}', this)">📋 Copiar Link</button>
+                            <button class="btn-open" onclick="abrirLink('${cleanUrl}')">🔗 Abrir</button>
                             <button class="btn-delete" onclick="deletarArquivo('${arquivo.caminho}', '${arquivo.sha}', this)">🗑️</button>
                         </div>
                     </div>
