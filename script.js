@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - GERENCIADOR DE MÍDIAS COM SEM CACHE
+// SCRIPT - GERENCIADOR DE MÍDIAS (AUTENTICADO + ANTI-CACHE)
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -12,7 +12,7 @@ const statusMsg = document.getElementById('statusMsg');
 const tokenInput = document.getElementById('githubTokenInput');
 const saveTokenBtn = document.getElementById('saveTokenBtn');
 
-// 🔽 CONFIGURAÇÃO (Lê a chave diretamente do navegador)
+// 🔽 CONFIGURAÇÃO
 const CONFIG = {
     owner: 'pesty199915-create',
     repo: 'midia',
@@ -46,21 +46,27 @@ function inicializarTokenLocal() {
 
 // 🔽 HEADERS DE AUTENTICAÇÃO
 function getHeaders() {
-    return {
-        'Authorization': `Bearer ${CONFIG.token}`,
+    const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json'
     };
+    if (CONFIG.token) {
+        headers['Authorization'] = `Bearer ${CONFIG.token}`;
+    }
+    return headers;
 }
 
-// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (Com fura-cache)
+// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (COM TOKEN E ANTI-CACHE)
 async function buscarArquivos(pasta) {
     try {
-        // Adicionando timestamp para forçar atualização em tempo real
         const timestamp = Date.now();
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}?ref=${CONFIG.branch}&t=${timestamp}`;
         
-        const resposta = await fetch(url, { cache: 'no-store' });
+        // Passa os headers de autenticação para não estourar limite e não dar erro 401/403
+        const resposta = await fetch(url, { 
+            headers: getHeaders(),
+            cache: 'no-store' 
+        });
         
         if (!resposta.ok) {
             if (resposta.status === 404) {
@@ -82,7 +88,6 @@ async function buscarArquivos(pasta) {
                 nome: arquivo.name,
                 caminho: arquivo.path,
                 sha: arquivo.sha,
-                // Parameter de tempo para evitar que a imagem carregue do cache antigo
                 url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${arquivo.path}?t=${timestamp}`
             }));
     } catch (erro) {
@@ -110,7 +115,7 @@ async function carregarMidias() {
         const todosArquivos = resultados.flat();
         
         if (todosArquivos.length === 0) {
-            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado.</p>`;
+            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado. (Verifique se salvou o Token acima)</p>`;
             return;
         }
 
@@ -120,7 +125,6 @@ async function carregarMidias() {
         
         todosArquivos.forEach(arquivo => {
             const fileUrl = arquivo.url;
-            // Para exibição do link sem a supressão de cache
             const rawCleanUrl = fileUrl.split('?')[0];
             const tipo = getTipoMidia(arquivo.nome);
             
@@ -233,12 +237,15 @@ async function deletarArquivo(caminho, sha, button) {
     }
 }
 
-// 🔽 BUSCA SHA CASO O ARQUIVO JÁ EXISTA (Com fura-cache)
+// 🔽 BUSCA SHA CASO O ARQUIVO JÁ EXISTA
 async function obterShaExistente(caminho) {
     try {
         const timestamp = Date.now();
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}?ref=${CONFIG.branch}&t=${timestamp}`;
-        const resposta = await fetch(url, { cache: 'no-store' });
+        const resposta = await fetch(url, { 
+            headers: getHeaders(),
+            cache: 'no-store' 
+        });
         if (resposta.ok) {
             const dados = await resposta.json();
             return dados.sha;
