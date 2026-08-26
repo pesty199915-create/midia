@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - GERENCIADOR DE MÍDIAS (AUTENTICADO + JSDELIVR CDN)
+// SCRIPT - GERENCIADOR DE MÍDIAS (AUTENTICADO + ANTI-CACHE)
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -56,12 +56,13 @@ function getHeaders() {
     return headers;
 }
 
-// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (COM LINK PARA STREAMING/VISUALIZAÇÃO)
+// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS (COM TOKEN E ANTI-CACHE)
 async function buscarArquivos(pasta) {
     try {
         const timestamp = Date.now();
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${pasta}?ref=${CONFIG.branch}&t=${timestamp}`;
         
+        // Passa os headers de autenticação para não estourar limite e não dar erro 401/403
         const resposta = await fetch(url, { 
             headers: getHeaders(),
             cache: 'no-store' 
@@ -87,8 +88,7 @@ async function buscarArquivos(pasta) {
                 nome: arquivo.name,
                 caminho: arquivo.path,
                 sha: arquivo.sha,
-                // Usando CDN do jsDelivr para reproduzir mídia direto na aba sem baixar
-                url: `https://cdn.jsdelivr.net/gh/${CONFIG.owner}/${CONFIG.repo}@${CONFIG.branch}/${arquivo.path}`
+                url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${arquivo.path}?t=${timestamp}`
             }));
     } catch (erro) {
         console.error(`Erro na pasta "${pasta}":`, erro);
@@ -115,7 +115,7 @@ async function carregarMidias() {
         const todosArquivos = resultados.flat();
         
         if (todosArquivos.length === 0) {
-            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado.</p>`;
+            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado. (Verifique se salvou o Token acima)</p>`;
             return;
         }
 
@@ -125,6 +125,7 @@ async function carregarMidias() {
         
         todosArquivos.forEach(arquivo => {
             const fileUrl = arquivo.url;
+            const rawCleanUrl = fileUrl.split('?')[0];
             const tipo = getTipoMidia(arquivo.nome);
             
             let previewHTML = '';
@@ -146,10 +147,10 @@ async function carregarMidias() {
                     <div class="preview">${previewHTML}</div>
                     <div class="info">
                         <div class="filename" title="${arquivo.nome}">${arquivo.nome}</div>
-                        <div class="link" title="${fileUrl}">${fileUrl}</div>
+                        <div class="link" title="${rawCleanUrl}">${rawCleanUrl}</div>
                         <div class="button-group">
-                            <button class="btn-copy" onclick="copiarLink('${fileUrl}', this)">📋 Copiar Link</button>
-                            <button class="btn-open" onclick="abrirLink('${fileUrl}')">🔗 Abrir</button>
+                            <button class="btn-copy" onclick="copiarLink('${rawCleanUrl}', this)">📋 Copiar Link</button>
+                            <button class="btn-open" onclick="abrirLink('${rawCleanUrl}')">🔗 Abrir</button>
                             <button class="btn-delete" onclick="deletarArquivo('${arquivo.caminho}', '${arquivo.sha}', this)">🗑️</button>
                         </div>
                     </div>
