@@ -14,20 +14,21 @@
             <p>Gerencie imagens e vídeos do seu catálogo</p>
         </header>
 
-        <!-- Campo para salvar o Token localmente sem expor no GitHub -->
+        <!-- Token do GitHub -->
         <div class="token-card" style="background: #12121a; padding: 16px; border-radius: 8px; border: 1px solid #2d2d33; margin-bottom: 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <span style="font-weight: 500; color: #e2e8f0;">🔑 Token do GitHub:</span>
             <input type="password" id="githubTokenInput" placeholder="Cole seu token (ghp_...)" style="flex: 1; min-width: 200px; padding: 8px 12px; border-radius: 6px; border: 1px solid #3d3d4e; background: #1c1c28; color: #fff; outline: none;">
             <button id="saveTokenBtn" style="padding: 8px 16px; border-radius: 6px; background: #8b5cf6; color: #fff; border: none; cursor: pointer; font-weight: 600;">Salvar Chave</button>
         </div>
 
-        <!-- Área de Upload -->
+        <!-- Área de Upload em Massa -->
         <section class="upload-section">
-            <h2>🕹️ Upload de Arquivos</h2>
+            <h2>🕹️ Upload de Arquivos (Em Massa)</h2>
             <div class="upload-area" id="uploadArea">
-                <p>📁 Arraste arquivos aqui ou clique para selecionar</p>
-                <span class="subtext">Formatos: PNG, JPG, MP4, MOV, etc.</span>
-                <input type="file" id="fileInput" hidden>
+                <p>📁 Arraste vários arquivos aqui ou clique para selecionar</p>
+                <span class="subtext">Formatos: PNG, JPG, MP4, MOV, etc. (Seleção múltipla ativada)</span>
+                <!-- atributo 'multiple' adicionado para permitir múltiplos arquivos -->
+                <input type="file" id="fileInput" multiple hidden>
                 <button class="btn-upload" id="uploadBtn">🕹️ Selecionar Arquivos</button>
             </div>
             
@@ -42,9 +43,22 @@
             <div id="statusMsg" class="status-msg" style="margin-top: 10px; font-weight: 500;"></div>
         </section>
 
-        <!-- Grade de Exibição de Mídias -->
+        <!-- Barra de Ações em Massa e Grade de Mídias -->
         <section class="media-section">
-            <h2>📑 Suas Mídias</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+                <h2 style="margin: 0;">📑 Suas Mídias</h2>
+                
+                <!-- Controles para Seleção e Exclusão em Massa -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="color: #a0aec0; cursor: pointer; font-size: 14px;">
+                        <input type="checkbox" id="selectAllCheckbox" style="cursor: pointer;"> Selecionar Todos
+                    </label>
+                    <button id="btnDeleteSelected" style="padding: 6px 14px; border-radius: 6px; background: #ef4444; color: #fff; border: none; cursor: pointer; font-weight: 600; display: none;">
+                        🗑️ Excluir Selecionados (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+            </div>
+
             <div class="media-grid" id="mediaGrid">
                 <p class="empty-msg">⏳ Carregando mídias...</p>
             </div>
