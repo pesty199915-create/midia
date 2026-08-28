@@ -1,5 +1,5 @@
 // ============================================
-// SCRIPT - GERENCIADOR DE MÍDIAS (VERSÃO VERCELL)
+// SCRIPT - GERENCIADOR DE MÍDIAS (SUPORTE EM MASSA + JSDELIVR)
 // ============================================
 
 const mediaGrid = document.getElementById('mediaGrid');
@@ -8,11 +8,13 @@ const fileInput = document.getElementById('fileInput');
 const uploadBtn = document.getElementById('uploadBtn');
 const statusMsg = document.getElementById('statusMsg');
 
-// Elementos da chave de acesso
+const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+const btnDeleteSelected = document.getElementById('btnDeleteSelected');
+const selectedCountEl = document.getElementById('selectedCount');
+
 const tokenInput = document.getElementById('githubTokenInput');
 const saveTokenBtn = document.getElementById('saveTokenBtn');
 
-// 🔽 CONFIGURAÇÃO
 const CONFIG = {
     owner: 'pesty199915-create',
     repo: 'midia',
@@ -23,12 +25,9 @@ const CONFIG = {
     }
 };
 
-// 🔽 URL BASE DO SITE NA VERCELL
-const SITE_URL = window.location.origin; // Ex: https://midia-theta.vercel.app
-
 const EXTENSOES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
 
-// 🔽 CONFIGURAÇÃO E GERENCIAMENTO DO TOKEN LOCAL
+// 🔽 CONFIGURAÇÃO DO TOKEN LOCAL
 function inicializarTokenLocal() {
     if (tokenInput && saveTokenBtn) {
         tokenInput.value = CONFIG.token;
@@ -47,7 +46,6 @@ function inicializarTokenLocal() {
     }
 }
 
-// 🔽 HEADERS DE AUTENTICAÇÃO
 function getHeaders() {
     const headers = {
         'Content-Type': 'application/json',
@@ -59,7 +57,7 @@ function getHeaders() {
     return headers;
 }
 
-// 🔽 FUNÇÃO PARA BUSCAR ARQUIVOS
+// 🔽 BUSCAR ARQUIVOS
 async function buscarArquivos(pasta) {
     try {
         const timestamp = Date.now();
@@ -71,10 +69,7 @@ async function buscarArquivos(pasta) {
         });
         
         if (!resposta.ok) {
-            if (resposta.status === 404) {
-                console.warn(`⚠️ Pasta "${pasta}" não encontrada.`);
-                return [];
-            }
+            if (resposta.status === 404) return [];
             throw new Error(`Erro ${resposta.status}: ${resposta.statusText}`);
         }
         
@@ -90,8 +85,7 @@ async function buscarArquivos(pasta) {
                 nome: arquivo.name,
                 caminho: arquivo.path,
                 sha: arquivo.sha,
-                // 🔽 USA O LINK DA VERCELL EM VEZ DO GITHUB
-                url: `${SITE_URL}/${arquivo.path}?t=${timestamp}`
+                url: `https://cdn.jsdelivr.net/gh/${CONFIG.owner}/${CONFIG.repo}@${CONFIG.branch}/${arquivo.path}`
             }));
     } catch (erro) {
         console.error(`Erro na pasta "${pasta}":`, erro);
@@ -99,7 +93,6 @@ async function buscarArquivos(pasta) {
     }
 }
 
-// 🔽 FUNÇÃO PARA IDENTIFICAR O TIPO DE MÍDIA
 function getTipoMidia(nome) {
     const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
     const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
@@ -108,9 +101,10 @@ function getTipoMidia(nome) {
     return 'unknown';
 }
 
-// 🔽 FUNÇÃO PARA CARREGAR MÍDIAS
+// 🔽 CARREGAR MÍDIAS E GERENCIAR SELEÇÕES
 async function carregarMidias() {
     mediaGrid.innerHTML = `<p class="empty-msg">⏳ Carregando mídias...</p>`;
+    atualizarBarraAcoesMassa();
 
     try {
         const promessas = CONFIG.pastas.map(pasta => buscarArquivos(pasta));
@@ -118,7 +112,7 @@ async function carregarMidias() {
         const todosArquivos = resultados.flat();
         
         if (todosArquivos.length === 0) {
-            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado. (Verifique se salvou o Token acima)</p>`;
+            mediaGrid.innerHTML = `<p class="empty-msg">📭 Nenhuma imagem ou vídeo encontrado.</p>`;
             return;
         }
 
@@ -127,9 +121,7 @@ async function carregarMidias() {
         let cardsHTML = '';
         
         todosArquivos.forEach(arquivo => {
-            // 🔽 LIMPA O TIMESTAMP PARA EXIBIÇÃO
             const fileUrl = arquivo.url;
-            const cleanUrl = fileUrl.split('?')[0];
             const tipo = getTipoMidia(arquivo.nome);
             
             let previewHTML = '';
@@ -137,7 +129,6 @@ async function carregarMidias() {
                 previewHTML = `
                     <video controls muted preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#000;">
                         <source src="${fileUrl}" />
-                        Seu navegador não suporta vídeo.
                     </video>
                 `;
             } else if (tipo === 'image') {
@@ -147,14 +138,19 @@ async function carregarMidias() {
             }
 
             cardsHTML += `
-                <div class="media-card" data-sha="${arquivo.sha}" data-caminho="${arquivo.caminho}">
+                <div class="media-card" data-sha="${arquivo.sha}" data-caminho="${arquivo.caminho}" style="position: relative;">
+                    <!-- Checkbox de Seleção Individual -->
+                    <div style="position: absolute; top: 8px; left: 8px; z-index: 10; background: rgba(0,0,0,0.6); padding: 4px; border-radius: 4px;">
+                        <input type="checkbox" class="select-media-checkbox" data-caminho="${arquivo.caminho}" data-sha="${arquivo.sha}" style="width: 18px; height: 18px; cursor: pointer;">
+                    </div>
+
                     <div class="preview">${previewHTML}</div>
                     <div class="info">
                         <div class="filename" title="${arquivo.nome}">${arquivo.nome}</div>
-                        <div class="link" title="${cleanUrl}">${cleanUrl}</div>
+                        <div class="link" title="${fileUrl}">${fileUrl}</div>
                         <div class="button-group">
-                            <button class="btn-copy" onclick="copiarLink('${cleanUrl}', this)">📋 Copiar Link</button>
-                            <button class="btn-open" onclick="abrirLink('${cleanUrl}')">🔗 Abrir</button>
+                            <button class="btn-copy" onclick="copiarLink('${fileUrl}', this)">📋 Copiar Link</button>
+                            <button class="btn-open" onclick="abrirLink('${fileUrl}')">🔗 Abrir</button>
                             <button class="btn-delete" onclick="deletarArquivo('${arquivo.caminho}', '${arquivo.sha}', this)">🗑️</button>
                         </div>
                     </div>
@@ -163,6 +159,7 @@ async function carregarMidias() {
         });
 
         mediaGrid.innerHTML = cardsHTML;
+        configurarEventosSelecao();
 
     } catch (erro) {
         console.error(erro);
@@ -170,78 +167,155 @@ async function carregarMidias() {
     }
 }
 
-// 🔽 FUNÇÃO PARA COPIAR LINK
-function copiarLink(url, button) {
-    navigator.clipboard.writeText(url).then(() => {
-        button.textContent = '✅ Copiado!';
-        button.classList.add('copied');
-        setTimeout(() => {
-            button.textContent = '📋 Copiar Link';
-            button.classList.remove('copied');
-        }, 2000);
-    }).catch(() => {
-        const input = document.createElement('input');
-        input.value = url;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        button.textContent = '✅ Copiado!';
-        setTimeout(() => {
-            button.textContent = '📋 Copiar Link';
-            button.classList.remove('copied');
-        }, 2000);
+// 🔽 GERENCIAMENTO DE SELEÇÃO EM MASSA
+function configurarEventosSelecao() {
+    const checkboxes = document.querySelectorAll('.select-media-checkbox');
+
+    checkboxes.forEach(chk => {
+        chk.addEventListener('change', atualizarBarraAcoesMassa);
     });
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.onclick = () => {
+            checkboxes.forEach(chk => chk.checked = selectAllCheckbox.checked);
+            atualizarBarraAcoesMassa();
+        };
+    }
 }
 
-// 🔽 FUNÇÃO PARA ABRIR EM NOVA ABA
-function abrirLink(url) {
-    window.open(url, '_blank');
+function atualizarBarraAcoesMassa() {
+    const selecionados = document.querySelectorAll('.select-media-checkbox:checked');
+    const total = selecionados.length;
+
+    if (selectedCountEl) selectedCountEl.textContent = total;
+
+    if (btnDeleteSelected) {
+        btnDeleteSelected.style.display = total > 0 ? 'inline-block' : 'none';
+    }
 }
 
-// 🔽 FUNÇÃO PARA DELETAR ARQUIVO
-async function deletarArquivo(caminho, sha, button) {
+// 🔽 EXCLUSÃO EM MASSA
+async function deletarMídiasEmMassa() {
     if (!CONFIG.token) {
         alert('❌ Insira o seu Token do GitHub no topo da página e clique em "Salvar Chave".');
         return;
     }
 
-    if (!confirm(`Tem certeza que deseja excluir "${caminho}"?`)) {
+    const selecionados = Array.from(document.querySelectorAll('.select-media-checkbox:checked')).map(chk => ({
+        caminho: chk.dataset.caminho,
+        sha: chk.dataset.sha
+    }));
+
+    if (selecionados.length === 0) return;
+
+    if (!confirm(`Tem certeza que deseja excluir ${selecionados.length} mídia(s) selecionada(s)?`)) {
         return;
     }
 
-    button.textContent = '⏳';
-    button.disabled = true;
+    btnDeleteSelected.disabled = true;
+    btnDeleteSelected.textContent = '⏳ Excluindo...';
 
-    try {
-        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}`;
-        const resposta = await fetch(url, {
-            method: 'DELETE',
-            headers: getHeaders(),
-            body: JSON.stringify({
-                message: `Exclusão do arquivo ${caminho}`,
-                sha: sha,
-                branch: CONFIG.branch
-            })
-        });
+    let sucessos = 0;
+    let erros = 0;
 
-        if (!resposta.ok) {
-            const erro = await resposta.json();
-            throw new Error(erro.message || 'Erro ao excluir arquivo.');
+    for (const item of selecionados) {
+        try {
+            const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${item.caminho}`;
+            const resposta = await fetch(url, {
+                method: 'DELETE',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    message: `Exclusão em massa do arquivo ${item.caminho}`,
+                    sha: item.sha,
+                    branch: CONFIG.branch
+                })
+            });
+
+            if (resposta.ok) {
+                sucessos++;
+            } else {
+                erros++;
+            }
+        } catch (erro) {
+            erros++;
         }
-
-        alert(`✅ Arquivo "${caminho}" excluído com sucesso!`);
-        carregarMidias();
-
-    } catch (erro) {
-        console.error(erro);
-        alert(`❌ Falha ao excluir: ${erro.message}`);
-        button.textContent = '🗑️';
-        button.disabled = false;
     }
+
+    alert(`Processo concluído!\n✅ Excluídos com sucesso: ${sucessos}\n❌ Erros: ${erros}`);
+    btnDeleteSelected.disabled = false;
+    carregarMidias();
 }
 
-// 🔽 BUSCA SHA CASO O ARQUIVO JÁ EXISTA
+if (btnDeleteSelected) {
+    btnDeleteSelected.addEventListener('click', deletarMídiasEmMassa);
+}
+
+// 🔽 UPLOAD EM MASSA
+async function fazerUploadEmMassa(arquivos, pasta) {
+    if (!CONFIG.token) {
+        alert('❌ Insira o seu Token do GitHub no topo da página e clique em "Salvar Chave".');
+        return;
+    }
+
+    const total = arquivos.length;
+    let enviados = 0;
+
+    statusMsg.style.color = '#3b82f6';
+
+    for (let i = 0; i < total; i++) {
+        const arquivo = arquivos[i];
+        statusMsg.textContent = `⏳ Enviando (${i + 1}/${total}): "${arquivo.name}"...`;
+
+        try {
+            const base64 = await converterParaBase64(arquivo);
+            const caminho = `${pasta}/${arquivo.name}`;
+            const shaExistente = await obterShaExistente(caminho);
+
+            const bodyData = {
+                message: `Upload em massa: ${arquivo.name}`,
+                content: base64,
+                branch: CONFIG.branch
+            };
+
+            if (shaExistente) bodyData.sha = shaExistente;
+
+            const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}`;
+            const resposta = await fetch(url, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify(bodyData)
+            });
+
+            if (!resposta.ok) {
+                const erro = await resposta.json();
+                throw new Error(erro.message || 'Erro ao realizar upload.');
+            }
+
+            enviados++;
+        } catch (erro) {
+            console.error(`Erro ao enviar ${arquivo.name}:`, erro);
+        }
+    }
+
+    statusMsg.textContent = `✅ Upload concluído! ${enviados} de ${total} arquivo(s) enviado(s).`;
+    statusMsg.style.color = '#10b981';
+
+    setTimeout(() => {
+        statusMsg.textContent = '';
+        carregarMidias();
+    }, 1500);
+}
+
+function converterParaBase64(arquivo) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(arquivo);
+    });
+}
+
 async function obterShaExistente(caminho) {
     try {
         const timestamp = Date.now();
@@ -260,80 +334,19 @@ async function obterShaExistente(caminho) {
     return null;
 }
 
-// 🔽 FUNÇÃO PARA FAZER UPLOAD
-async function fazerUpload(arquivo, pasta) {
-    if (!CONFIG.token) {
-        alert('❌ Insira o seu Token do GitHub no topo da página e clique em "Salvar Chave".');
-        return;
-    }
-
-    statusMsg.textContent = `⏳ Enviando "${arquivo.name}"...`;
-    statusMsg.style.color = '#3b82f6';
-
-    const reader = new FileReader();
-    reader.onload = async function(event) {
-        const base64 = event.target.result.split(',')[1];
-        const caminho = `${pasta}/${arquivo.name}`;
-
-        try {
-            const shaExistente = await obterShaExistente(caminho);
-
-            const bodyData = {
-                message: `Upload do arquivo ${arquivo.name}`,
-                content: base64,
-                branch: CONFIG.branch
-            };
-
-            if (shaExistente) {
-                bodyData.sha = shaExistente;
-            }
-
-            const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}`;
-            const resposta = await fetch(url, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify(bodyData)
-            });
-
-            if (!resposta.ok) {
-                const erro = await resposta.json();
-                throw new Error(erro.message || 'Erro ao realizar upload.');
-            }
-
-            statusMsg.textContent = `✅ "${arquivo.name}" enviado com sucesso!`;
-            statusMsg.style.color = '#10b981';
-            
-            setTimeout(() => {
-                statusMsg.textContent = '';
-                carregarMidias();
-            }, 1000);
-
-        } catch (erro) {
-            console.error(erro);
-            statusMsg.textContent = `❌ Erro: ${erro.message}`;
-            statusMsg.style.color = '#ef4444';
-        }
-    };
-    reader.readAsDataURL(arquivo);
-}
-
-// 🔽 CONFIGURAR EVENTOS DE UPLOAD
+// 🔽 EVENTOS DE UPLOAD
 function configurarUpload() {
-    uploadBtn.addEventListener('click', function() {
-        fileInput.click();
-    });
+    uploadBtn.addEventListener('click', () => fileInput.click());
 
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
-            const arquivo = this.files[0];
             const pastaEl = document.getElementById('pastaUpload');
             const pasta = pastaEl ? pastaEl.value : 'images';
-            fazerUpload(arquivo, pasta);
+            fazerUploadEmMassa(Array.from(this.files), pasta);
         }
         this.value = '';
     });
 
-    // Drag and drop
     uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
         this.style.borderColor = '#8b5cf6';
@@ -352,15 +365,58 @@ function configurarUpload() {
         this.style.background = 'transparent';
         
         if (e.dataTransfer.files.length > 0) {
-            const arquivo = e.dataTransfer.files[0];
             const pastaEl = document.getElementById('pastaUpload');
             const pasta = pastaEl ? pastaEl.value : 'images';
-            fazerUpload(arquivo, pasta);
+            fazerUploadEmMassa(Array.from(e.dataTransfer.files), pasta);
         }
     });
 }
 
-// 🔽 INICIALIZAÇÃO
+function copiarLink(url, button) {
+    navigator.clipboard.writeText(url).then(() => {
+        button.textContent = '✅ Copiado!';
+        setTimeout(() => button.textContent = '📋 Copiar Link', 2000);
+    });
+}
+
+function abrirLink(url) {
+    window.open(url, '_blank');
+}
+
+async function deletarArquivo(caminho, sha, button) {
+    if (!CONFIG.token) {
+        alert('❌ Insira o seu Token do GitHub.');
+        return;
+    }
+
+    if (!confirm(`Tem certeza que deseja excluir "${caminho}"?`)) return;
+
+    button.textContent = '⏳';
+    button.disabled = true;
+
+    try {
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${caminho}`;
+        const resposta = await fetch(url, {
+            method: 'DELETE',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                message: `Exclusão do arquivo ${caminho}`,
+                sha: sha,
+                branch: CONFIG.branch
+            })
+        });
+
+        if (!resposta.ok) throw new Error('Erro ao excluir arquivo.');
+
+        alert(`✅ Arquivo excluído com sucesso!`);
+        carregarMidias();
+    } catch (erro) {
+        alert(`❌ Falha: ${erro.message}`);
+        button.textContent = '🗑️';
+        button.disabled = false;
+    }
+}
+
 window.addEventListener('DOMContentLoaded', function() {
     inicializarTokenLocal();
     carregarMidias();
